@@ -1,0 +1,51 @@
+{
+    "n_materials": 2,
+    "mat_name": [
+        "water",
+        "ncat_blood"
+    ],
+    "volumefractionmap_filename": [
+        "dro_phantom_water_mask.raw",
+        "dro_phantom_mask.raw"
+    ],
+    "volumefractionmap_datatype": [
+        "int8",
+        "int8"
+    ],
+    "cols": [
+        512,
+        512
+    ],
+    "rows": [
+        512,
+        512
+    ],
+    "slices": [
+        300,
+        300
+    ],
+    "x_size": [
+        1.0,
+        1.0
+    ],
+    "y_size": [
+        1.0,
+        1.0
+    ],
+    "z_size": [
+        1.0,
+        1.0
+    ],
+    "x_offset": [
+        256.0,
+        256.0
+    ],
+    "y_offset": [
+        256.0,
+        256.0
+    ],
+    "z_offset": [
+        150.0,
+        150.0
+    ]
+}

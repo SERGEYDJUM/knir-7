@@ -1,0 +1,8 @@
+{
+    "mean_radius": 150,
+    "surface_frequency": 10,
+    "surface_amplitude": 0.05,
+    "texture_wavelength": 5,
+    "texture_amplitude": 0.5,
+    "gaussian_standard_deviation": 0
+}
