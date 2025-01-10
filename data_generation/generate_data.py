@@ -3,13 +3,25 @@ import gecatsim as xc
 import gecatsim.reconstruction.pyfiles.recon as recon
 from gecatsim.pyfiles.CommonTools import my_path
 from os import path, makedirs
+import voxelmap as vxm
+import skimage
 import numpy as np
 from PIL import Image
 
 
-def create() -> None:
+def draw_object(object: np.ndarray):
+    voxels = object.astype(np.uint8)
+    voxels = skimage.measure.block_reduce(voxels, (6, 6, 6), np.max)
+    model = vxm.Model(voxels)
+    model.draw()
+
+
+def create(show: bool = False) -> None:
     size = 512
     _, mask = generate_phantom("./cfg/Phantom_Generation.json")
+
+    if show:
+        draw_object(mask)
 
     mask = np.transpose(mask, (2, 0, 1)).astype(np.int8)
 
@@ -57,7 +69,7 @@ def main():
 
     # Image.fromarray((mask[50, :, :].astype(np.uint8) * 255)).save("mask_50.png")
 
-    create()
+    create(show=False)
     imsize, slice_cnt = simulate()
 
     scan = xc.rawread(".temp/test_512x512x10.raw", [slice_cnt, imsize, imsize], "float")
