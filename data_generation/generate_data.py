@@ -5,6 +5,7 @@ from gecatsim.pyfiles.CommonTools import my_path
 from os import path, makedirs
 import voxelmap as vxm
 import skimage
+import sys
 import numpy as np
 from PIL import Image
 
@@ -68,11 +69,10 @@ def main():
     # print(mask.min(), mask.max())
 
     # Image.fromarray((mask[50, :, :].astype(np.uint8) * 255)).save("mask_50.png")
-
-    create(show=False)
+    create(show="show" in sys.argv)
     imsize, slice_cnt = simulate()
 
-    scan = xc.rawread(".temp/test_512x512x10.raw", [slice_cnt, imsize, imsize], "float")
+    scan = xc.rawread(".temp/test_512x512x20.raw", [slice_cnt, imsize, imsize], "float")
     scan -= np.min(scan)
     scan /= np.max(scan)
     scan *= 255
