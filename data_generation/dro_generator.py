@@ -3,6 +3,8 @@ from scipy.ndimage import binary_dilation, gaussian_filter
 import itertools
 import json
 
+from data_generation.utils import LesionBBox
+
 # Set of Default Parameters
 default_parameters = {
     # Size Features
@@ -140,23 +142,86 @@ def frange(start, stop, step):
     return np.linspace(start, stop, num=step).tolist()
 
 
-def read_json_cfg(path: str) -> dict:
-    params = default_parameters
+def read_json_cfg(path: str) -> list[dict]:
+    params = []
     with open(path, "r", encoding="utf-8") as cfg_file:
-        for key, val in json.load(cfg_file).items():
-            params[key] = [val, val, 1]
+        for object in json.load(cfg_file):
+            obj_param = dict(default_parameters.items())
+            for key, val in object.items():
+                obj_param[key] = [val, val, 1]
+            params.append(obj_param)
     return params
 
 
-def generate_phantom(cfg_path: str) -> tuple[np.ndarray, np.ndarray]:
+def generate_phantom(
+    cfg_path: str,
+    roi_radius: int = 64,
+    orbit: int = 150,
+) -> tuple[np.ndarray, list[LesionBBox]]:
     """Generates a phantom.
 
     Args:
         cfg_path (str): path to JSON with custom config.
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: phantom and it's mask.
+        tuple[np.ndarray, list[LesionBBox]]: phantom mask and lesions on it.
     """
 
-    full_param_list = generate_params(expand_range(read_json_cfg(cfg_path)))
-    return get_single_dro(full_param_list[0])
+    placement_radius = orbit
+    phantom = np.zeros((512, 512, 300), dtype=np.bool)
+    mid = 512 // 2
+
+    objects_cfgs = read_json_cfg(cfg_path)
+    angle_s = 2 * np.pi / len(objects_cfgs)
+    safe_r = int(placement_radius * np.cos(np.pi / 2 - angle_s / 2))
+
+    if safe_r <= roi_radius:
+        raise UserWarning(f"Safezone too small for ROI ({safe_r} < {roi_radius})")
+
+    bboxes = []
+
+    for i, ocfg in enumerate(objects_cfgs):
+        obj_mean_r = ocfg["mean_radius"][0]
+        obj_amplitude = ocfg["surface_amplitude"][0]
+        obj_x_deform = ocfg["x_deformation"][0]
+        obj_y_deform = ocfg["y_deformation"][0]
+        obj_z_deform = ocfg["z_deformation"][0]
+
+        assert (
+            max(obj_x_deform, obj_y_deform, obj_z_deform) <= 1.0
+        ), "Enlarging DRO deformation unsupported"
+
+        obj_r = obj_mean_r + int(obj_mean_r * obj_amplitude)
+
+        if safe_r <= obj_r:
+            raise UserWarning(
+                f"Object might not fit into safezone ({safe_r} <= {obj_r})"
+            )
+
+        if roi_radius <= obj_r:
+            raise UserWarning(
+                f"Object might not fit into ROI ({roi_radius} <= {obj_r})"
+            )
+
+        _, mask = get_single_dro(generate_params(expand_range(ocfg))[0])
+
+        mask = mask[mid - safe_r : mid + safe_r, mid - safe_r : mid + safe_r, :]
+
+        xc = int(placement_radius * np.cos(-angle_s * i)) + mid
+        yc = int(placement_radius * np.sin(-angle_s * i)) + mid
+
+        xi, yi = xc - safe_r, yc - safe_r
+        xo, yo = xc + safe_r, yc + safe_r
+
+        phantom[yi:yo, xi:xo, :] = np.logical_or(mask, phantom[yi:yo, xi:xo, :])
+
+        bboxes.append(
+            LesionBBox(
+                (xc, yc, mask.shape[2] // 2),
+                (obj_r * obj_x_deform, obj_r * obj_y_deform, obj_r * obj_z_deform),
+                safe_r,
+                roi_radius,
+            )
+        )
+
+    return phantom, bboxes

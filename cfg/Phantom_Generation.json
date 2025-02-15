@@ -1,8 +1,36 @@
-{
-    "mean_radius": 100,
-    "surface_frequency": 10,
-    "surface_amplitude": 1,
-    "texture_wavelength": 10,
-    "texture_amplitude": 1,
-    "gaussian_standard_deviation": 0
-}
+[
+    {
+        "mean_radius": 5,
+        "surface_frequency": 3,
+        "surface_amplitude": 0.3
+    },
+    {
+        "mean_radius": 10,
+        "surface_frequency": 4,
+        "surface_amplitude": 0.5,
+        "x_deformation": 0.8
+    },
+    {
+        "mean_radius": 15,
+        "surface_frequency": 6,
+        "surface_amplitude": 0.5,
+        "y_deformation": 0.8
+    },
+    {
+        "mean_radius": 20,
+        "surface_frequency": 0,
+        "surface_amplitude": 0.5,
+        "x_deformation": 0.9
+    },
+    {
+        "mean_radius": 25,
+        "surface_frequency": 10,
+        "surface_amplitude": 0.5,
+        "x_deformation": 0.7
+    },
+    {
+        "mean_radius": 30,
+        "surface_frequency": 5,
+        "surface_amplitude": 0.5
+    }
+]
