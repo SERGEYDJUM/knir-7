@@ -169,7 +169,7 @@ def generate_phantom(
     """
 
     placement_radius = orbit
-    phantom = np.zeros((512, 512, 300), dtype=np.bool)
+    phantom = np.zeros((512, 512, 50), dtype=np.bool)
     mid = 512 // 2
 
     objects_cfgs = read_json_cfg(cfg_path)
@@ -206,7 +206,7 @@ def generate_phantom(
 
         _, mask = get_single_dro(generate_params(expand_range(ocfg))[0])
 
-        mask = mask[mid - safe_r : mid + safe_r, mid - safe_r : mid + safe_r, :]
+        mask = mask[mid - safe_r : mid + safe_r, mid - safe_r : mid + safe_r, 125:175]
 
         xc = int(placement_radius * np.cos(-angle_s * i)) + mid
         yc = int(placement_radius * np.sin(-angle_s * i)) + mid

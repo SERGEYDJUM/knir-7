@@ -1,6 +1,5 @@
 import gecatsim as xc
 import gecatsim.reconstruction.pyfiles.recon as recon
-import gecatsim.dose.pyfiles.catdoserecon as doserecon
 from gecatsim.pyfiles.CommonTools import my_path as catsim_paths
 
 from PIL import Image, ImageDraw
@@ -30,6 +29,8 @@ CSV_HEADER = (
     "bbox_safe_r_x",
     "bbox_safe_r_y",
     "signal_present",
+    "tube_current",
+    "recon_kernel",
     "phantom_cfg_md5",
     "xcist_cfg_md5",
 )
@@ -72,7 +73,7 @@ def create_phantom(save_mask: bool = False, empty: bool = False) -> Phantom:
     return Phantom(bboxes)
 
 
-def reconstruct(catsim: xc.CatSim, dose: bool = False) -> tuple[NDArray, float]:
+def reconstruct(catsim: xc.CatSim) -> tuple[NDArray, float]:
     catsim.do_Recon = 1
     recon.recon(catsim)
 
@@ -190,6 +191,9 @@ def main():
 
             for slice_idx in range(tomogram.shape[0]):
                 for bb_idx, bbox in enumerate(bboxes.signals):
+                    if abs(imscale - 1) > 1e-3:
+                        bbox = bbox.scale(imscale)
+
                     writer.writerow(
                         (
                             slice_idx,
@@ -201,6 +205,8 @@ def main():
                             bbox.sr[0],
                             bbox.sr[1],
                             not args.empty,
+                            int(catsim.protocol.mA),
+                            catsim.recon.kernelType,
                             ph_cfg_hash,
                             catsim_cfg_hash,
                         )
