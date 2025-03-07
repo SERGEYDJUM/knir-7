@@ -33,6 +33,7 @@ CSV_HEADER = (
     "recon_kernel",
     "phantom_cfg_md5",
     "xcist_cfg_md5",
+    "raw_source",
 )
 
 
@@ -209,6 +210,7 @@ def main():
                             catsim.recon.kernelType,
                             ph_cfg_hash,
                             catsim_cfg_hash,
+                            path.relpath(raw_path, dataset_raws),
                         )
                     )
 
