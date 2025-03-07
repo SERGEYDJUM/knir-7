@@ -1,6 +1,7 @@
 cfg/*.raw
 out_reconstructed/
 .temp/
+dataset/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

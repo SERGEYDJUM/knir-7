@@ -157,6 +157,7 @@ def generate_phantom(
     cfg_path: str,
     roi_radius: int = 64,
     orbit: int = 150,
+    empty: bool = False,
 ) -> tuple[np.ndarray, list[LesionBBox]]:
     """Generates a phantom.
 
@@ -213,14 +214,23 @@ def generate_phantom(
         xi, yi = xc - safe_r, yc - safe_r
         xo, yo = xc + safe_r, yc + safe_r
 
-        phantom[yi:yo, xi:xo, :] = np.logical_or(mask, phantom[yi:yo, xi:xo, :])
+        if not empty:
+            phantom[yi:yo, xi:xo, :] = np.logical_or(mask, phantom[yi:yo, xi:xo, :])
+
+        outer_circle_r = 256 - np.sqrt((xc - mid) ** 2 + (yc - mid) ** 2)
+        real_safe_r = min(safe_r, int(outer_circle_r / np.sqrt(2)))
+        r_z = int(obj_r * obj_z_deform)
 
         bboxes.append(
             LesionBBox(
-                (xc, yc, mask.shape[2] // 2),
-                (obj_r * obj_x_deform, obj_r * obj_y_deform, obj_r * obj_z_deform),
-                safe_r,
-                roi_radius,
+                center=(xc, yc, mask.shape[2] // 2),
+                r=(
+                    int(obj_r * obj_x_deform),
+                    int(obj_r * obj_y_deform),
+                    r_z,
+                ),
+                safe_r=(real_safe_r, real_safe_r, r_z),
+                roi_r=(roi_radius, roi_radius, r_z),
             )
         )
 

@@ -2,7 +2,7 @@
     "n_materials": 2,
     "mat_name": [
         "water",
-        "ncat_blood"
+        "ncat_skin"
     ],
     "volumefractionmap_filename": [
         "dro_phantom_water_mask.raw",

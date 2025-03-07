@@ -1,14 +1,15 @@
 [
     {
-        "mean_radius": 5,
-        "surface_frequency": 3,
-        "surface_amplitude": 0.3
+        "mean_radius": 10,
+        "surface_frequency": 0,
+        "surface_amplitude": 0,
+        "x_deformation": 0.8
     },
     {
-        "mean_radius": 10,
-        "surface_frequency": 4,
+        "mean_radius": 25,
+        "surface_frequency": 10,
         "surface_amplitude": 0.5,
-        "x_deformation": 0.8
+        "x_deformation": 0.7
     },
     {
         "mean_radius": 15,
@@ -19,18 +20,12 @@
     {
         "mean_radius": 20,
         "surface_frequency": 0,
-        "surface_amplitude": 0.5,
+        "surface_amplitude": 1,
         "x_deformation": 0.9
     },
     {
-        "mean_radius": 25,
-        "surface_frequency": 10,
-        "surface_amplitude": 0.5,
-        "x_deformation": 0.7
-    },
-    {
-        "mean_radius": 30,
-        "surface_frequency": 5,
-        "surface_amplitude": 0.5
+        "mean_radius": 5,
+        "surface_frequency": 0,
+        "surface_amplitude": 0
     }
 ]

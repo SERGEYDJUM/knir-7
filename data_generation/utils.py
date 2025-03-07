@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from typing import Self
+import json
 
 
 class LesionBBox:
@@ -75,3 +77,32 @@ class LesionBBox:
 @dataclass
 class Phantom:
     signals: list[LesionBBox]
+
+    def dump(self, path: str) -> None:
+        bboxes = list(
+            map(
+                lambda b: {"center": b.center, "r": b.r, "rr": b.rr, "sr": b.sr},
+                self.signals,
+            )
+        )
+
+        with open(path, "w", encoding="utf-8") as phantom_file:
+            json.dump(bboxes, fp=phantom_file)
+
+    @staticmethod
+    def load(path: str) -> Self:
+        with open(path, "r", encoding="utf-8") as phantom_file:
+            signals = json.load(phantom_file)
+            return Phantom(
+                signals=list(
+                    map(
+                        lambda b: LesionBBox(
+                            center=tuple(b["center"]),
+                            r=tuple(b["r"]),
+                            safe_r=tuple(b["sr"]),
+                            roi_r=tuple(b["rr"]),
+                        ),
+                        signals,
+                    )
+                )
+            )
