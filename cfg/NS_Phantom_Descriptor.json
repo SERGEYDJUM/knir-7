@@ -1,62 +1,50 @@
 {
-    "n_materials": 3,
+    "n_materials": 2,
     "mat_name": [
         "ncat_breast_mammary",
-        "CIRS_adipose_adult2",
         "CIRS_adipose_adult3"
     ],
     "volumefractionmap_filename": [
-        "dro_phantom_water_mask.raw",
-        "dro_phantom_mask.raw",
-        "dro_phantom_tex_mask.raw"
+        "dro_phantom_bg_empty.raw",
+        "dro_phantom_t_empty.raw"
     ],
     "volumefractionmap_datatype": [
-        "int8",
         "int8",
         "int8"
     ],
     "cols": [
         512,
-        512,
         512
     ],
     "rows": [
-        512,
         512,
         512
     ],
     "slices": [
         48,
-        48,
         48
     ],
     "x_size": [
-        1.0,
         1.0,
         1.0
     ],
     "y_size": [
         1.0,
-        1.0,
         1.0
     ],
     "z_size": [
-        1.0,
         1.0,
         1.0
     ],
     "x_offset": [
         256.0,
-        256.0,
         256.0
     ],
     "y_offset": [
         256.0,
-        256.0,
         256.0
     ],
     "z_offset": [
-        24.0,
         24.0,
         24.0
     ]

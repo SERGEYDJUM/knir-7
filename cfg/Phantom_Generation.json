@@ -1,31 +1,41 @@
-[
-    {
-        "mean_radius": 10,
-        "surface_frequency": 0,
-        "surface_amplitude": 0,
-        "x_deformation": 0.8
+{
+    "texture": {
+        "noise_cutoff": 0.95
     },
-    {
-        "mean_radius": 15,
-        "surface_frequency": 10,
-        "surface_amplitude": 0.5,
-        "x_deformation": 0.7
-    },
-    {
-        "mean_radius": 15,
-        "surface_frequency": 6,
-        "surface_amplitude": 0.5,
-        "y_deformation": 0.8
-    },
-    {
-        "mean_radius": 20,
-        "surface_frequency": 0,
-        "surface_amplitude": 1,
-        "x_deformation": 0.9
-    },
-    {
-        "mean_radius": 5,
-        "surface_frequency": 0,
-        "surface_amplitude": 0
-    }
-]
+    "objects": [
+        {
+            "mean_radius": 6,
+            "surface_amplitude": 0
+        },
+        {
+            "mean_radius": 7,
+            "surface_frequency": 3,
+            "surface_amplitude": 0.2,
+            "x_deformation": 0.6
+        },
+        {
+            "mean_radius": 7,
+            "surface_frequency": 4,
+            "surface_amplitude": 0.2,
+            "y_deformation": 0.6
+        },
+        {
+            "mean_radius": 6,
+            "surface_frequency": 5,
+            "surface_amplitude": 0.3,
+            "x_deformation": 0.75
+        },
+        {
+            "mean_radius": 6,
+            "surface_frequency": 6,
+            "surface_amplitude": 0.4,
+            "y_deformation": 0.75
+        },
+        {
+            "mean_radius": 6,
+            "surface_frequency": 7,
+            "surface_amplitude": 0.3
+        }
+    ]
+}
+

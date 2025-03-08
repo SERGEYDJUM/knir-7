@@ -144,13 +144,31 @@ def frange(start, stop, step):
 
 def read_json_cfg(path: str) -> list[dict]:
     params = []
+    texture = {}
     with open(path, "r", encoding="utf-8") as cfg_file:
-        for object in json.load(cfg_file):
+        cfg_content = json.load(cfg_file)
+        texture = cfg_content["texture"]
+        for object in cfg_content["objects"]:
             obj_param = dict(default_parameters.items())
             for key, val in object.items():
                 obj_param[key] = [val, val, 1]
             params.append(obj_param)
-    return params
+    return params, texture
+
+
+def generate_tex(scale: int, cutoff: float, shape):
+    tex_shape = (
+        shape[0] // scale,
+        shape[1] // scale,
+        shape[2] // scale,
+    )
+
+    bg_tex = np.random.uniform(0, 1, tex_shape) > cutoff
+
+    if scale > 1:
+        bg_tex = np.kron(bg_tex, np.ones((scale, scale, scale)))
+
+    return bg_tex
 
 
 def generate_phantom(
@@ -158,7 +176,7 @@ def generate_phantom(
     roi_radius: int = 64,
     orbit: int = 150,
     empty: bool = False,
-) -> tuple[np.ndarray, list[LesionBBox]]:
+) -> tuple[np.ndarray, np.ndarray, list[LesionBBox]]:
     """Generates a phantom.
 
     Args:
@@ -169,10 +187,12 @@ def generate_phantom(
     """
 
     placement_radius = orbit
-    phantom = np.zeros((512, 512, 50), dtype=np.bool)
+    phantom = np.zeros((512, 512, 48), dtype=np.bool)
     mid = 512 // 2
 
-    objects_cfgs = read_json_cfg(cfg_path)
+    objects_cfgs, texture_cfg = read_json_cfg(cfg_path)
+    tex_cutoff = texture_cfg["noise_cutoff"]
+
     angle_s = 2 * np.pi / len(objects_cfgs)
     safe_r = int(placement_radius * np.cos(np.pi / 2 - angle_s / 2))
 
@@ -206,7 +226,7 @@ def generate_phantom(
 
         _, mask = get_single_dro(generate_params(expand_range(ocfg))[0])
 
-        mask = mask[mid - safe_r : mid + safe_r, mid - safe_r : mid + safe_r, 125:175]
+        mask = mask[mid - safe_r : mid + safe_r, mid - safe_r : mid + safe_r, 126:174]
 
         xc = int(placement_radius * np.cos(-angle_s * i)) + mid
         yc = int(placement_radius * np.sin(-angle_s * i)) + mid
@@ -234,4 +254,8 @@ def generate_phantom(
             )
         )
 
-    return phantom, bboxes
+    bg_tex = generate_tex(4, tex_cutoff, phantom.shape)
+    bg_tex = np.logical_or(bg_tex, generate_tex(2, tex_cutoff, phantom.shape))
+    bg_tex = np.logical_or(bg_tex, generate_tex(1, tex_cutoff, phantom.shape))
+
+    return phantom, bboxes, bg_tex

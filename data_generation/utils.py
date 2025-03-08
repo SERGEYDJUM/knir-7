@@ -1,6 +1,13 @@
 from dataclasses import dataclass
 from typing import Self
+from numpy.typing import NDArray
+import numpy as np
 import json
+
+
+def save_raw(data: NDArray, path: str):
+    with open(path, "wb") as dro_raw:
+        dro_raw.write(np.ascontiguousarray(data))
 
 
 class LesionBBox:

@@ -11,7 +11,7 @@ from hashlib import md5
 import numpy as np
 import csv
 
-from .utils import Phantom
+from .utils import Phantom, save_raw
 from .dro_generator import generate_phantom
 
 WORKDIR = path.abspath("./.temp")
@@ -20,6 +20,7 @@ DATASET_DIR = path.abspath("./dataset")
 EXPERIMENT_PREFIX = path.join(WORKDIR, "MAIN")
 
 CSV_HEADER = (
+    "tomogram_index",
     "slice_index",
     "bbox_index",
     "bbox_center_x",
@@ -37,16 +38,24 @@ CSV_HEADER = (
 )
 
 
-def create_phantom(save_mask: bool = False, empty: bool = False) -> Phantom:
-    mask, bboxes = generate_phantom(
-        path.join(CFGDIR, "Phantom_Generation.json"), empty=empty
+def create_phantom(save_mask: bool = False) -> Phantom:
+    mask, bboxes, bg_tex_mask = generate_phantom(
+        path.join(CFGDIR, "Phantom_Generation.json")
     )
 
     mask = np.transpose(mask, (2, 0, 1)).astype(np.int8)
-    assert mask.shape[1] == mask.shape[2]
+    bg_tex_mask = np.transpose(bg_tex_mask, (2, 0, 1)).astype(np.int8)
 
+    assert mask.shape[1] == mask.shape[2]
     z_slices = mask.shape[0]
     size = mask.shape[2]
+
+    x, y = np.mgrid[:size, :size]
+    allowed_circle = ((x - size // 2) ** 2 + (y - size // 2) ** 2) < (size // 2) ** 2
+
+    empty_mask = np.ones_like(bg_tex_mask) - bg_tex_mask
+    save_raw(empty_mask * allowed_circle, path.join(CFGDIR, "dro_phantom_bg_empty.raw"))
+    save_raw(bg_tex_mask * allowed_circle, path.join(CFGDIR, "dro_phantom_t_empty.raw"))
 
     if save_mask:
         img = Image.fromarray((mask[z_slices // 2, :, :].astype(np.uint8) * 255))
@@ -58,18 +67,21 @@ def create_phantom(save_mask: bool = False, empty: bool = False) -> Phantom:
 
         img.save(path.join(WORKDIR, f"mask_{z_slices // 2}.png"))
 
-    x, y = np.mgrid[:size, :size]
-    allowed_circle = ((x - size // 2) ** 2 + (y - size // 2) ** 2) < (size // 2) ** 2
+    bg_tex_mask = np.clip(bg_tex_mask - mask, 0, 1)
+    inv_mask = 1 - mask - bg_tex_mask
+    inv_mask = np.clip(inv_mask, 0, 1)
 
-    inv_mask = 1 - mask
     mask *= allowed_circle
     inv_mask *= allowed_circle
+    bg_tex_mask *= allowed_circle
 
-    with open(path.join(CFGDIR, "dro_phantom_mask.raw"), "wb") as dro_raw:
-        dro_raw.write(np.ascontiguousarray(mask))
+    if save_mask:
+        img = Image.fromarray((bg_tex_mask[z_slices // 2, :, :].astype(np.uint8) * 255))
+        img.save(path.join(WORKDIR, f"tex_mask_{z_slices // 2}.png"))
 
-    with open(path.join(CFGDIR, "dro_phantom_water_mask.raw"), "wb") as dro_raw:
-        dro_raw.write(np.ascontiguousarray(inv_mask))
+    save_raw(mask, path.join(CFGDIR, "dro_phantom_mask.raw"))
+    save_raw(inv_mask, path.join(CFGDIR, "dro_phantom_water_mask.raw"))
+    save_raw(bg_tex_mask, path.join(CFGDIR, "dro_phantom_tex_mask.raw"))
 
     return Phantom(bboxes)
 
@@ -90,7 +102,9 @@ def reconstruct(catsim: xc.CatSim) -> tuple[NDArray, float]:
     return tomogram, bbox_scale
 
 
-def demo_reconstructed(tomogram: NDArray, bboxes: Phantom, imscale: float) -> None:
+def demo_reconstructed(
+    tomogram: NDArray, bboxes: Phantom, imscale: float, name_prefix: str = "recon"
+) -> None:
     demo_dir = path.join(WORKDIR, "out")
     makedirs(demo_dir, exist_ok=True)
 
@@ -103,10 +117,10 @@ def demo_reconstructed(tomogram: NDArray, bboxes: Phantom, imscale: float) -> No
         image = Image.fromarray(demo_tomo[i, :, :]).convert("RGB")
         draw = ImageDraw.Draw(image)
         for bbox in bboxes.signals:
-            draw.rectangle(bbox.scale(imscale).bbox(), outline=(0, 255, 0))
+            # draw.rectangle(bbox.scale(imscale).bbox(), outline=(0, 255, 0))
             draw.rectangle(bbox.scale(imscale).roi_bbox(), outline=(0, 0, 0))
             draw.rectangle(bbox.scale(imscale).safe_bbox(), outline=(0, 0, 255))
-        image.save(path.join(demo_dir, f"recon_slice_{i}.png"))
+        image.save(path.join(demo_dir, f"{name_prefix}_slice_{i}.png"))
 
 
 def parse_args() -> Namespace:
@@ -139,7 +153,7 @@ def main():
     # Phantom generation
     bboxes: Phantom = None
     if not args.skipgen:
-        bboxes = create_phantom(save_mask=args.mask, empty=args.empty)
+        bboxes = create_phantom(save_mask=args.mask)
         bboxes.dump(bbox_cache)
     else:
         bboxes = Phantom.load(bbox_cache)
@@ -169,6 +183,9 @@ def main():
 
     # Simulation
     catsim = xc.CatSim(catsim_cfg)
+    if args.empty:
+        catsim.phantom.filename = "NS_Phantom_Descriptor.json"
+
     catsim.resultsName = EXPERIMENT_PREFIX
 
     if not path.exists(dataset_csv):
@@ -197,6 +214,7 @@ def main():
 
                     writer.writerow(
                         (
+                            repeat_iter,
                             slice_idx,
                             bb_idx,
                             bbox.center[0],
