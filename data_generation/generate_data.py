@@ -129,6 +129,7 @@ def parse_args() -> Namespace:
     parser.add_argument("-m", "--mask", action="store_true")
     parser.add_argument("-s", "--skipgen", action="store_true")
     parser.add_argument("-e", "--empty", action="store_true")
+    parser.add_argument("--reconstruct-only", action="store_true")
     parser.add_argument("-r", "--repeat", default=1, type=int)
     return parser.parse_args()
 
@@ -196,7 +197,9 @@ def main():
         writer = csv.writer(csvfile, lineterminator="\n")
 
         for repeat_iter in range(args.repeat):
-            catsim.run_all()
+            if not args.reconstruct_only:
+                catsim.run_all()
+
             tomogram, imscale = reconstruct(catsim)
 
             raw_timestamp = (
