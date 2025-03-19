@@ -176,6 +176,7 @@ def generate_phantom(
     roi_radius: int = 64,
     orbit: int = 150,
     empty: bool = False,
+    slices: int = 8,
 ) -> tuple[np.ndarray, np.ndarray, list[LesionBBox]]:
     """Generates a phantom.
 
@@ -187,7 +188,7 @@ def generate_phantom(
     """
 
     placement_radius = orbit
-    phantom = np.zeros((512, 512, 48), dtype=np.bool)
+    phantom = np.zeros((512, 512, slices), dtype=np.bool)
     mid = 512 // 2
 
     objects_cfgs, texture_cfg = read_json_cfg(cfg_path)
@@ -226,7 +227,14 @@ def generate_phantom(
 
         _, mask = get_single_dro(generate_params(expand_range(ocfg))[0])
 
-        mask = mask[mid - safe_r : mid + safe_r, mid - safe_r : mid + safe_r, 126:174]
+        m_zcut = mask.shape[2] // 2
+        m_zcut_r = slices // 2
+
+        mask = mask[
+            mid - safe_r : mid + safe_r,
+            mid - safe_r : mid + safe_r,
+            m_zcut - m_zcut_r : m_zcut + m_zcut_r,
+        ]
 
         xc = int(placement_radius * np.cos(-angle_s * i)) + mid
         yc = int(placement_radius * np.sin(-angle_s * i)) + mid

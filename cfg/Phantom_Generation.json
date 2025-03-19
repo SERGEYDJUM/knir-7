@@ -2,6 +2,7 @@
     "texture": {
         "noise_cutoff": 0.95
     },
+    "material": "Lumex",
     "objects": [
         {
             "mean_radius": 6,

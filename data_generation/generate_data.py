@@ -10,6 +10,7 @@ from datetime import datetime
 from hashlib import md5
 import numpy as np
 import csv
+import json
 
 from .utils import Phantom, save_raw
 from .dro_generator import generate_phantom
@@ -38,15 +39,7 @@ CSV_HEADER = (
 )
 
 
-def create_phantom(save_mask: bool = False) -> Phantom:
-    mask, bboxes, bg_tex_mask = generate_phantom(
-        path.join(CFGDIR, "Phantom_Generation.json")
-    )
-
-    mask = np.transpose(mask, (2, 0, 1)).astype(np.int8)
-    bg_tex_mask = np.transpose(bg_tex_mask, (2, 0, 1)).astype(np.int8)
-
-    assert mask.shape[1] == mask.shape[2]
+def process_signals(mask, bboxes, bg_tex_mask, save_mask: bool = False) -> Phantom:
     z_slices = mask.shape[0]
     size = mask.shape[2]
 
@@ -84,6 +77,65 @@ def create_phantom(save_mask: bool = False) -> Phantom:
     save_raw(bg_tex_mask, path.join(CFGDIR, "dro_phantom_tex_mask.raw"))
 
     return Phantom(bboxes)
+
+
+def patched_phantom(save_mask: bool = False):
+    ph_g_path = path.join(CFGDIR, "Phantom_Generation.json")
+    b_p_path = path.join(CFGDIR, "Base_Phantom_Descriptor.json")
+
+    phantom_cfg = json.load(open(b_p_path))
+    json.dump(phantom_cfg, open(path.join(CFGDIR, "Phantom_NS_Descriptor.json"), "w"))
+    material = json.load(open(ph_g_path))["material"]
+
+    slices = int(max(phantom_cfg["slices"]))
+
+    mask, bboxes, bg_tex_mask = generate_phantom(ph_g_path, slices=slices)
+    inv_mask = np.transpose(np.logical_not(mask).astype(np.int8), (2, 0, 1))
+    mask = np.transpose(mask, (2, 0, 1)).astype(np.int8)
+    bg_tex_mask = np.transpose(bg_tex_mask, (2, 0, 1)).astype(np.int8)
+    bboxes = process_signals(mask, bboxes, bg_tex_mask, save_mask=save_mask)
+
+    for i, layer_name in enumerate(phantom_cfg["volumefractionmap_filename"]):
+        slices = int(phantom_cfg["slices"][i])
+        rows = int(phantom_cfg["rows"][i])
+        cols = int(phantom_cfg["cols"][i])
+
+        layer = xc.rawread(path.join(CFGDIR, layer_name), (slices, rows, cols), "int8")
+        midpoint = layer.shape[1] // 2, layer.shape[2] // 2
+        mask_r = mask.shape[1] // 2, mask.shape[2] // 2
+
+        layer[
+            :,
+            midpoint[0] - mask_r[0] : midpoint[0] + mask_r[0],
+            midpoint[1] - mask_r[1] : midpoint[1] + mask_r[1],
+        ] *= inv_mask
+
+        xc.rawwrite(path.join(CFGDIR, layer_name + ".patched"), layer)
+
+    phantom_cfg["n_materials"] += 1
+    phantom_cfg["mat_name"].append(material)
+
+    vfms = list(
+        map(lambda x: x + ".patched", phantom_cfg["volumefractionmap_filename"])
+    )
+
+    phantom_cfg["volumefractionmap_filename"] = vfms + ["dro_phantom_mask.raw"]
+    phantom_cfg["volumefractionmap_datatype"].append("int8")
+    phantom_cfg["cols"].append(mask.shape[2])
+    phantom_cfg["rows"].append(mask.shape[1])
+    phantom_cfg["slices"].append(mask.shape[0])
+    phantom_cfg["x_size"].append(phantom_cfg["x_size"][-1])
+    phantom_cfg["y_size"].append(phantom_cfg["y_size"][-1])
+    phantom_cfg["z_size"].append(phantom_cfg["z_size"][-1])
+    phantom_cfg["x_offset"].append(mask.shape[2] // 2)
+    phantom_cfg["y_offset"].append(mask.shape[1] // 2)
+    phantom_cfg["z_offset"].append(mask.shape[0] // 2)
+
+    json.dump(phantom_cfg, open(path.join(CFGDIR, "Phantom_Descriptor.json"), "w"))
+
+    # TODO: Fix bboxes after patching
+
+    return bboxes
 
 
 def reconstruct(catsim: xc.CatSim) -> tuple[NDArray, float]:
@@ -154,7 +206,7 @@ def main():
     # Phantom generation
     bboxes: Phantom = None
     if not args.skipgen:
-        bboxes = create_phantom(save_mask=args.mask)
+        bboxes = patched_phantom(save_mask=args.mask)
         bboxes.dump(bbox_cache)
     else:
         bboxes = Phantom.load(bbox_cache)
@@ -185,7 +237,7 @@ def main():
     # Simulation
     catsim = xc.CatSim(catsim_cfg)
     if args.empty:
-        catsim.phantom.filename = "NS_Phantom_Descriptor.json"
+        catsim.phantom.filename = "Phantom_NS_Descriptor.json"
 
     catsim.resultsName = EXPERIMENT_PREFIX
 
